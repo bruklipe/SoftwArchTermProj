@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Add Secure Note{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Add Secure Note</h2>
+    
+    <form method="POST" class="vault-form">
+        <div class="form-group">
+            <label for="name">Title</label>
+            <input type="text" id="name" name="name" required 
+                   placeholder="e.g., Important Passwords, Recovery Codes">
+        </div>
+        
+        <div class="form-group">
+            <label for="content">Secure Note Content</label>
+            <div class="note-container">
+                <textarea id="content" name="content" required 
+                          placeholder="Enter your secure note content here..."
+                          rows="10"></textarea>
+                <div class="note-actions">
+                    <button type="button" class="btn btn-secondary" 
+                            onclick="toggleNoteVisibility()">Show/Hide</button>
+                    <span class="char-count">0 characters</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.note-container {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    min-height: 200px;
+    font-family: monospace;
+}
+
+.note-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.char-count {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+/* Masked state styles */
+.masked {
+    -webkit-text-security: disc;
+    text-security: disc;
+}
+</style>
+
+<script>
+let isNoteMasked = true;
+let autoMaskTimeout;
+
+function toggleNoteVisibility() {
+    const textarea = document.getElementById('content');
+    isNoteMasked = !isNoteMasked;
+    
+    if (isNoteMasked) {
+        textarea.classList.add('masked');
+    } else {
+        textarea.classList.remove('masked');
+        
+        // Clear any existing timeout
+        if (autoMaskTimeout) {
+            clearTimeout(autoMaskTimeout);
+        }
+        
+        // Auto-mask after 30 seconds
+        autoMaskTimeout = setTimeout(() => {
+            textarea.classList.add('masked');
+            isNoteMasked = true;
+        }, 30000);
+    }
+}
+
+// Update character count
+document.getElementById('content').addEventListener('input', function(e) {
+    const count = e.target.value.length;
+    document.querySelector('.char-count').textContent = 
+        `${count} character${count !== 1 ? 's' : ''}`;
+});
+
+// Initialize masked state
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('content');
+    textarea.classList.add('masked');
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const content = document.getElementById('content').value.trim();
+    
+    if (!content) {
+        e.preventDefault();
+        alert('Please enter some content for your secure note');
+        return;
+    }
+});
+
+// Warn before leaving page with unsaved changes
+let hasChanges = false;
+
+document.querySelector('form').addEventListener('input', function() {
+    hasChanges = true;
+});
+
+window.addEventListener('beforeunload', function(e) {
+    if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+document.querySelector('form').addEventListener('submit', function() {
+    hasChanges = false;
+});
+</script>
+{% endblock %}

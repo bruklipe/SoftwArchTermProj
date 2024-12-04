@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Add Login{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Add Login</h2>
+    
+    <form method="POST" class="vault-form">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" required placeholder="e.g., Gmail, Facebook">
+        </div>
+        
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-input-group">
+                <input type="password" id="password" name="password" required>
+                <button type="button" class="btn btn-secondary" onclick="openPasswordGenerator()">Generate</button>
+                <button type="button" class="btn btn-secondary" onclick="togglePasswordVisibility()">Show</button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="url">Website URL (optional)</label>
+            <input type="url" id="url" name="url" placeholder="https://example.com">
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- Password Generator Modal -->
+<div id="passwordGeneratorModal" class="modal">
+    <div class="modal-content">
+        <h3>Password Generator</h3>
+        <div class="generator-options">
+            <div class="form-group">
+                <label for="passwordLength">Length:</label>
+                <input type="number" id="passwordLength" value="12" min="8" max="64">
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="uppercase" checked>
+                    Uppercase Letters (A-Z)
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="lowercase" checked>
+                    Lowercase Letters (a-z)
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="numbers" checked>
+                    Numbers (0-9)
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="symbols">
+                    Special Characters (!@#$%^&*)
+                </label>
+            </div>
+        </div>
+        
+        <div class="generated-password">
+            <input type="text" id="generatedPassword" readonly>
+            <button onclick="copyGeneratedPassword()" class="btn-copy">Copy</button>
+            <button onclick="generateNewPassword()" class="btn-refresh">Refresh</button>
+        </div>
+        
+        <div class="modal-actions">
+            <button onclick="useGeneratedPassword()" class="btn-primary">Use Password</button>
+            <button onclick="closePasswordGenerator()" class="btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.password-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.password-input-group input {
+    flex: 1;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    position: relative;
+    background-color: white;
+    margin: 15% auto;
+    padding: 2rem;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+}
+
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.generated-password {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.generated-password input {
+    flex: 1;
+    font-family: monospace;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+</style>
+
+<script>
+function openPasswordGenerator() {
+    const modal = document.getElementById('passwordGeneratorModal');
+    modal.style.display = 'block';
+    generateNewPassword();
+}
+
+function closePasswordGenerator() {
+    document.getElementById('passwordGeneratorModal').style.display = 'none';
+}
+
+function generateNewPassword() {
+    console.log('Generating new password...');
+    
+    const options = {
+        length: parseInt(document.getElementById('passwordLength').value),
+        uppercase: document.getElementById('uppercase').checked,
+        lowercase: document.getElementById('lowercase').checked,
+        numbers: document.getElementById('numbers').checked,
+        symbols: document.getElementById('symbols').checked
+    };
+    
+    console.log('Options:', options);
+    
+    fetch('/generate_password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(options),
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            document.getElementById('generatedPassword').value = data.password;
+            document.getElementById('password').value = data.password;
+            let isGeneratedInput = document.getElementById('is_generated');
+            if (!isGeneratedInput) {
+                isGeneratedInput = document.createElement('input');
+                isGeneratedInput.type = 'hidden';
+                isGeneratedInput.id = 'is_generated';
+                isGeneratedInput.name = 'is_generated';
+                document.querySelector('form').appendChild(isGeneratedInput);
+            }
+            isGeneratedInput.value = 'true';
+        } else {
+            console.error('Password generation failed:', data.error);
+            alert('Failed to generate password: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to generate password. Please try again.');
+    });
+}
+
+function useGeneratedPassword() {
+    const password = document.getElementById('generatedPassword').value;
+    document.getElementById('password').value = password;
+    closePasswordGenerator();
+}
+
+function copyGeneratedPassword() {
+    const password = document.getElementById('generatedPassword').value;
+    mediator.notify('data_copied', password);
+}
+
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('password');
+    mediator.notify('data_masked', {
+        elementId: 'password',
+        currentType: passwordInput.type
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    mediator.on('password_generated', function(data) {
+        if (data.success) {
+            document.getElementById('generatedPassword').value = data.password;
+        }
+    });
+    
+    mediator.on('mask_toggled', function(data) {
+        const element = document.getElementById(data.elementId);
+        if (element) {
+            element.type = data.newType;
+            const button = element.parentElement.querySelector('button:last-child');
+            if (button) {
+                button.textContent = data.buttonText;
+            }
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const styles = `
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        .generated-password {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .generated-password input {
+            flex: 1;
+            padding: 0.5rem;
+            font-family: monospace;
+        }
+        
+        .btn-copy, .btn-refresh {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .btn-copy {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-refresh {
+            background-color: #17a2b8;
+            color: white;
+        }
+    `;
+    
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = styles;
+    document.head.appendChild(styleSheet);
+});
+</script>
+{% endblock %}
+

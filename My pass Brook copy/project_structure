@@ -1,0 +1,5 @@
+Myweb/
+├── patterns/
+│   ├── __init__.py      # Keep this empty or with imports only
+│   └── builder.py       # Contains PasswordBuilder class
+└── generate_password.py  # Move your password generation code here 

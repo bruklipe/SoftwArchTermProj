@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>Create Your Account</h2>
+    
+    <form method="POST" class="auth-form">
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Master Password</label>
+            <input type="password" id="password" name="password" required>
+            <small>Password must be at least 8 characters long and include uppercase, lowercase, numbers, and symbols.</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="confirm_password">Confirm Master Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
+        
+        <h3>Security Questions</h3>
+        <div class="form-group">
+            <label for="security_question1">Security Question 1</label>
+            <select name="security_question1" id="security_question1" required>
+                <option value="">Select a question...</option>
+                <option value="What was your first pet's name?">What was your first pet's name?</option>
+                <option value="What was the name of your first school?">What was the name of your first school?</option>
+                <option value="What city were you born in?">What city were you born in?</option>
+            </select>
+            <input type="text" name="security_answer1" required placeholder="Your answer">
+        </div>
+        
+        <div class="form-group">
+            <label for="security_question2">Security Question 2</label>
+            <select name="security_question2" id="security_question2" required>
+                <option value="">Select a question...</option>
+                <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                <option value="What was your first car?">What was your first car?</option>
+                <option value="What is your favorite book?">What is your favorite book?</option>
+            </select>
+            <input type="text" name="security_answer2" required placeholder="Your answer">
+        </div>
+        
+        <div class="form-group">
+            <label for="security_question3">Security Question 3</label>
+            <select name="security_question3" id="security_question3" required>
+                <option value="">Select a question...</option>
+                <option value="What is your favorite movie?">What is your favorite movie?</option>
+                <option value="What street did you grow up on?">What street did you grow up on?</option>
+                <option value="What was your childhood nickname?">What was your childhood nickname?</option>
+            </select>
+            <input type="text" name="security_answer3" required placeholder="Your answer">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+    
+    <div class="auth-links">
+        Already have an account? <a href="{{ url_for('login') }}">Login here</a>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.auth-form {
+    margin-top: 1rem;
+}
+
+.auth-links {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+select {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+small {
+    color: #666;
+    display: block;
+    margin-top: 0.25rem;
+}
+</style>
+
+<script>
+document.getElementById('password').addEventListener('input', function(e) {
+    const password = e.target.value;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[^A-Za-z0-9]/.test(password);
+    const isLongEnough = password.length >= 8;
+    
+    if (!isLongEnough || !hasUpper || !hasLower || !hasNumber || !hasSymbol) {
+        e.target.setCustomValidity('Password must meet all requirements');
+    } else {
+        e.target.setCustomValidity('');
+    }
+});
+
+document.querySelector('form').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('Passwords do not match!');
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Add Identity{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>Add Identity</h2>
+    
+    <form method="POST" class="vault-form">
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" required placeholder="e.g., My Passport">
+        </div>
+        
+        <div class="form-group">
+            <label for="first_name">First Name</label>
+            <input type="text" id="first_name" name="first_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="last_name">Last Name</label>
+            <input type="text" id="last_name" name="last_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="identity_type">Identity Type</label>
+            <select id="identity_type" name="identity_type" required onchange="updateFields()">
+                <option value="">Select Type...</option>
+                <option value="passport">Passport</option>
+                <option value="drivers_license">Driver's License</option>
+                <option value="ssn">Social Security Number</option>
+            </select>
+        </div>
+        
+        <!-- Passport Fields -->
+        <div id="passport_fields" class="identity-fields" style="display: none;">
+            <div class="form-group">
+                <label for="passport_number">Passport Number</label>
+                <input type="text" id="passport_number" name="id_number" 
+                       pattern="[A-Z0-9]+" minlength="5" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label for="passport_expiration">Expiration Date</label>
+                <input type="date" id="passport_expiration" name="expiry_date">
+            </div>
+        </div>
+        
+        <!-- Driver's License Fields -->
+        <div id="license_fields" class="identity-fields" style="display: none;">
+            <div class="form-group">
+                <label for="license_number">License Number</label>
+                <input type="text" id="license_number" name="id_number" 
+                       minlength="5" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label for="license_expiration">Expiration Date</label>
+                <input type="date" id="license_expiration" name="expiry_date">
+            </div>
+        </div>
+        
+        <!-- SSN Fields -->
+        <div id="ssn_fields" class="identity-fields" style="display: none;">
+            <div class="form-group">
+                <label for="ssn">Social Security Number</label>
+                <input type="text" id="ssn" name="id_number" 
+                       placeholder="XXX-XX-XXXX" maxlength="11">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">Save Identity</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateFields() {
+    document.querySelectorAll('.identity-fields').forEach(field => {
+        field.style.display = 'none';
+    });
+    
+    const type = document.getElementById('identity_type').value;
+    if (type) {
+        const fieldsId = `${type === 'drivers_license' ? 'license' : type}_fields`;
+        document.getElementById(fieldsId).style.display = 'block';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.vault-form');
+    const ssnInput = document.getElementById('ssn');
+
+    // Format SSN input
+    if (ssnInput) {
+        ssnInput.addEventListener('input', function(e) {
+            let value = this.value.replace(/\D/g, '');
+            if (value.length > 9) value = value.slice(0, 9);
+            if (value.length >= 5) {
+                value = value.slice(0,3) + '-' + value.slice(3,5) + '-' + value.slice(5);
+            } else if (value.length >= 3) {
+                value = value.slice(0,3) + '-' + value.slice(3);
+            }
+            this.value = value;
+        });
+    }
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const type = document.getElementById('identity_type').value;
+        const title = document.getElementById('title').value.trim();
+        const firstName = document.getElementById('first_name').value.trim();
+        const lastName = document.getElementById('last_name').value.trim();
+        
+        if (!type || !title || !firstName || !lastName) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        let idNumber = '';
+        let expiryDate = '';
+
+        if (type === 'ssn') {
+            idNumber = document.getElementById('ssn').value.replace(/\D/g, '');
+            if (idNumber.length !== 9) {
+                alert('Please enter a valid 9-digit Social Security Number');
+                return;
+            }
+        } else if (type === 'passport') {
+            idNumber = document.getElementById('passport_number').value.trim();
+            expiryDate = document.getElementById('passport_expiration').value;
+            if (!idNumber || !expiryDate) {
+                alert('Please fill in all passport fields');
+                return;
+            }
+        } else if (type === 'drivers_license') {
+            idNumber = document.getElementById('license_number').value.trim();
+            expiryDate = document.getElementById('license_expiration').value;
+            if (!idNumber || !expiryDate) {
+                alert('Please fill in all driver\'s license fields');
+                return;
+            }
+        }
+
+        // Create hidden input for id_number if it doesn't exist
+        let idNumberInput = form.querySelector('input[name="id_number"]');
+        if (!idNumberInput) {
+            idNumberInput = document.createElement('input');
+            idNumberInput.type = 'hidden';
+            idNumberInput.name = 'id_number';
+            form.appendChild(idNumberInput);
+        }
+        idNumberInput.value = idNumber;
+
+        // Create hidden input for expiry_date if it doesn't exist
+        if (expiryDate) {
+            let expiryDateInput = form.querySelector('input[name="expiry_date"]');
+            if (!expiryDateInput) {
+                expiryDateInput = document.createElement('input');
+                expiryDateInput.type = 'hidden';
+                expiryDateInput.name = 'expiry_date';
+                form.appendChild(expiryDateInput);
+            }
+            expiryDateInput.value = expiryDate;
+        }
+
+        console.log('Form validation passed, submitting with:', {
+            type,
+            title,
+            firstName,
+            lastName,
+            idNumber,
+            expiryDate
+        });
+        
+        this.submit();
+    });
+});
+</script>
+{% endblock %}
+

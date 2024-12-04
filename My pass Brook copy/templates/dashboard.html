@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+{% if security_events %}
+<div class="security-alerts">
+    <div class="alerts-header">
+        <h3>Security Alerts</h3>
+        <button onclick="dismissAllAlerts()" class="btn-dismiss-all">Dismiss All</button>
+    </div>
+    {% for event in security_events %}
+    <div class="alert alert-{{ event.severity }}" data-event-id="{{ event.id }}">
+        <span class="alert-icon">⚠️</span>
+        <span class="alert-message">{{ event.message }}</span>
+        <span class="alert-time">{{ event.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+        <button onclick="dismissAlert(this)" class="btn-dismiss">×</button>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+.security-alerts {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alerts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.btn-dismiss-all {
+    padding: 0.5rem 1rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-dismiss {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0 0.5rem;
+}
+
+.btn-dismiss:hover {
+    color: #000;
+}
+
+.alert {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.alert-high {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.alert-medium {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.alert-low {
+    background-color: #e0f2fe;
+    color: #075985;
+}
+</style>
+
+<script>
+// Remove any direct UI manipulation code and use mediator
+function dismissAllAlerts() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        const alertId = alert.dataset.eventId;
+        mediator.notify('dismissAlert', alertId);
+    });
+}
+
+function showVaultItem(itemId) {
+    mediator.notify('toggleMask', `vault-item-${itemId}`);
+}
+
+function copyVaultData(data) {
+    mediator.notify('copyToClipboard', data);
+}
+
+// ... any other UI functions should use mediator ...
+</script>
+{% endif %}
+
+<div class="dashboard-container">
+    <div class="vault-grid">
+        <!-- Logins Section -->
+        <div class="vault-card">
+            <h2>Logins</h2>
+            <button class="btn btn-success add-btn" type="button" data-action="navigate" data-url="{{ url_for('add_login') }}">Add Login</button>
+            {% if logins %}
+                {% for login in logins %}
+                    <div class="vault-item" data-item-id="{{ login.id }}">
+                        <h3>{{ json.loads(login.data).get('title', login.title) }}</h3>
+                        <div class="item-field">
+                            <span>Username: </span>
+                            <span class="masked-data" data-type="username" data-value="{{ json.loads(login.data).get('username', '') }}">
+                                {% set username = json.loads(login.data).get('username', '') %}
+                                {% if '@' in username %}
+                                    {% set username_parts = username.split('@') %}
+                                    {{ '•' * username_parts[0]|length }}@{{ username_parts[1] }}
+                                {% else %}
+                                    {{ '•' * username|length }}
+                                {% endif %}
+                            </span>
+                            <button class="btn-small btn-show" type="button" data-action="show">Show</button>
+                            <button class="btn-small btn-copy" type="button" data-action="copy" data-value="{{ login.url }}">Copy</button>
+                        </div>
+                        <div class="item-field">
+                            <span>Password: </span>
+                            <span class="masked-data" data-type="password" data-value="{{ json.loads(login.data).get('password', '') }}">
+                                {{ '•' * 8 }}
+                            </span>
+                            <button class="btn-small btn-show" type="button" data-action="show">Show</button>
+                            <button class="btn-small btn-copy" type="button" data-action="copy">Copy</button>
+                        </div>
+                        {% if login.url %}
+                        <div class="item-field">
+                            <span>URL: </span>
+                            <span>{{ login.url }}</span>
+                            <button class="btn-small btn-copy" type="button" data-action="copy" data-value="{{ login.url }}">Copy</button>
+                        </div>
+                        {% endif %}
+                        <div class="item-actions">
+                            <button class="btn-small btn-edit" onclick="window.location.href='{{ url_for('edit_login', id=login.id) }}'">Edit</button>
+                            <button class="btn-small btn-delete" type="button" data-action="delete" data-type="login" data-id="{{ login.id }}">Delete</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Credit Cards Section -->
+        <div class="vault-card">
+            <h2>Credit Cards</h2>
+            <button class="btn btn-success add-btn" type="button" data-action="navigate" data-url="{{ url_for('add_card') }}">Add Credit Card</button>
+            {% if credit_cards %}
+                {% for card in credit_cards %}
+                    <div class="vault-item">
+                        <h3>{{ card.title }}</h3>
+                        <div class="item-field">
+                            <span>Card Number: </span>
+                            {% set card_data = json.loads(card.data) %}
+                            <span class="masked-data" data-type="card" data-value="{{ card_data.card_number }}">•••• •••• •••• {{ card_data.card_number[-4:] }}</span>
+                            <button class="btn-small btn-show" type="button" data-action="show">Show</button>
+                            <button class="btn-small btn-copy" type="button" data-action="copy">Copy</button>
+                        </div>
+                        <div class="item-field">
+                            <span>CVV: </span>
+                            <span class="masked-data" data-type="cvv" data-value="{{ card_data.cvv }}">•••</span>
+                            <button class="btn-small btn-show" type="button" data-action="show">Show</button>
+                            <button class="btn-small btn-copy" type="button" data-action="copy">Copy</button>
+                        </div>
+                        <div class="item-field">
+                            <span>Expiration: </span>
+                            <span>{{ card_data.expiration_month }}/{{ card_data.expiration_year }}</span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn-small btn-edit" onclick="window.location.href='{{ url_for('edit_card', id=card.id) }}'">Edit</button>
+                            <button class="btn-small btn-delete" type="button" data-action="delete" data-type="card" data-id="{{ card.id }}">Delete</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Identities Section -->
+        <div class="vault-card">
+            <h2>Identities</h2>
+            <button class="btn btn-success add-btn" type="button" data-action="navigate" data-url="{{ url_for('add_identity') }}">Add Identity</button>
+            {% if identities %}
+                {% for identity in identities %}
+                    {% set identity_data = json.loads(identity.data) %}
+                    <div class="vault-item">
+                        <h3>{{ identity.title }}</h3>
+                        <div class="item-field">
+                            <span>Full Name: </span>
+                            <span class="masked-data" data-type="full_name" 
+                                  data-value="{{ identity_data.get('first_name', '') }} {{ identity_data.get('last_name', '') }}">
+                                {{ '•' * (identity_data.get('first_name', '')|length + identity_data.get('last_name', '')|length + 1) }}
+                            </span>
+                            <button class="btn-small btn-show" type="button" data-action="show">Show</button>
+                            <button class="btn-small btn-copy" type="button" data-action="copy">Copy</button>
+                        </div>
+                        <div class="item-field">
+                            <span>{{ identity_data.get('identity_type', '')|title }} Number: </span>
+                            <span class="masked-data" data-type="{{ identity_data.get('identity_type', '') }}" data-value="{{ identity_data.get('id_number', '') }}">
+                                {% if identity_data.get('identity_type') == 'ssn' %}
+                                    •••-••-{{ identity_data.get('id_number', '')[-4:] if identity_data.get('id_number') else '' }}
+                                {% else %}
+                                    {% set id_num = identity_data.get('id_number', '') %}
+                                    {{ '•' * (id_num|length - 4) if id_num else '' }}{{ id_num[-4:] if id_num else '' }}
+                                {% endif %}
+                            </span>
+                            <button class="btn-small btn-show" type="button" data-action="show">Show</button>
+                            <button class="btn-small btn-copy" type="button" data-action="copy">Copy</button>
+                        </div>
+                        {% if identity_data.get('expiry_date') %}
+                        <div class="item-field">
+                            <span>Expiry Date: </span>
+                            <span>{{ identity_data.get('expiry_date') }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="item-actions">
+                            <button class="btn-small btn-edit" type="button" data-action="navigate" 
+                                    data-url="{{ url_for('edit_identity', id=identity.id) }}">Edit</button>
+                            <button class="btn-small btn-delete" type="button" data-action="delete" 
+                                    data-type="identity" data-id="{{ identity.id }}">Delete</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="no-items">No identities added yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Secure Notes Section -->
+        <div class="vault-card">
+            <h2>Secure Notes</h2>
+            <button class="btn btn-success add-btn" type="button" data-action="navigate" data-url="{{ url_for('add_note') }}">Add Secure Note</button>
+            {% if secure_notes %}
+                {% for note in secure_notes %}
+                    {% set note_data = json.loads(note.data) %}
+                    <div class="vault-item">
+                        <h3>{{ note.title }}</h3>
+                        <div class="item-field">
+                            <span>Content: </span>
+                            <span class="masked-data" data-type="note" data-value="{{ note_data.get('content', '') }}">
+                                {{ '•' * 12 }}
+                            </span>
+                            <button class="btn-small btn-show" type="button" data-action="show">Show</button>
+                            <button class="btn-small btn-copy" type="button" data-action="copy">Copy</button>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn-small btn-edit" type="button" data-action="navigate" 
+                                    data-url="{{ url_for('edit_note', id=note.id) }}">Edit</button>
+                            <button class="btn-small btn-delete" type="button" data-action="delete" 
+                                    data-type="note" data-id="{{ note.id }}">Delete</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="no-items">No secure notes added yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/proxy.js') }}"></script>
+<script src="{{ url_for('static', filename='js/session.js') }}"></script>
+<script src="{{ url_for('static', filename='js/mediator.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/clipboard.js') }}"></script>
+
+<style>
+.vault-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.vault-item {
+    background: #f8f9fa;
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.item-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.btn-small {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+}
+
+.btn-show {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-copy {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: black;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.masked-data {
+    font-family: monospace;
+    min-width: 60px;
+}
+</style>
+{% endblock %} 
